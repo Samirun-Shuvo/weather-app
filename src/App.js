@@ -1,33 +1,78 @@
+import { useEffect, useState } from "react";
 import hotbg from "./assets/hotbg.jpg";
-// import coldbg from "./assets/coldbg.jpg";
+import coldbg from "./assets/coldbg.jpg";
 import Discription from "./components/Description.js";
+import { getFormettedWeatherData } from "./weatherService.js";
 
 function App() {
-  // api=https://api.openweathermap.org/data/2.5/weather?q=paris&appid=dfdb1dcc8650a84dffa9797d5d3ecb6b
-  return (
-    <div className="app" style={{ backgroundImage: `url(${hotbg})` }}>
-      <div className="overlay">
-        <div className="container">
-          <div className="section section__inputs">
-            <input type="text" name="city" placeholder="Enter city..." />
-            <button>°F</button>
-          </div>
-          <div className="section section__temperature">
-            <div className="icon">
-              <h3>London, GB</h3>
-              <img
-                src="https://ssl.gstatic.com/onebox/weather/64/partly_cloudy.png"
-                alt=""
-              />
-              <h3>Cloudy</h3>
-            </div>
-            <div className="temperature">
-              <h1>34 °C</h1>
-            </div>
-          </div>
+  const [city, setCity] = useState("Paris");
+  const [weather, setWeather] = useState(null);
+  const [units, setUnits] = useState("metric");
+  const [bg, setBg] = useState(hotbg);
 
-          <Discription></Discription>
-        </div>
+  useEffect(() => {
+    const fetchWeatherData = async () => {
+      const data = await getFormettedWeatherData(city, units);
+      setWeather(data);
+
+      // dynamic bg
+      const threshold = units === "metric" ? 20 : 60;
+      if (data.temp <= threshold) {
+        setBg(coldbg);
+      } else {
+        setBg(hotbg);
+      }
+    };
+    fetchWeatherData();
+  }, [city, units]);
+
+  const handleUnitsClick = (e) => {
+    const button = e.currentTarget;
+    const currentUnit = button.innerText.slice(1);
+    const isCelsius = currentUnit === "C";
+    button.innerText = isCelsius ? "°F" : "°C";
+    setUnits(isCelsius ? "metric" : "imperial");
+  };
+
+  const enterKeyPressed = (e) => {
+    if (e.keyCode === 13) {
+      setCity(e.currentTarget.value);
+      e.currentTarget.blur();
+    }
+  };
+
+  return (
+    <div className="app" style={{ backgroundImage: `url(${bg})` }}>
+      <div className="overlay">
+        {weather && (
+          <div className="container">
+            <div className="section section__inputs">
+              <input
+                onKeyDown={enterKeyPressed}
+                type="text"
+                name="city"
+                placeholder="Enter city..."
+              />
+              <button onClick={(e) => handleUnitsClick(e)}>°F</button>
+            </div>
+            <div className="section section__temperature">
+              <div className="icon">
+                <h3>
+                  {weather.name},{weather.country}
+                </h3>
+                <img src={weather.iconURL} alt="WeatherIcon" />
+                <h3>{weather.description}</h3>
+              </div>
+              <div className="temperature">
+                <h1>
+                  {weather.temp.toFixed()} °{units === "metric" ? "C" : "F"}
+                </h1>
+              </div>
+            </div>
+
+            <Discription weather={weather} units={units}></Discription>
+          </div>
+        )}
       </div>
     </div>
   );
